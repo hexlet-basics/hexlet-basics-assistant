@@ -1,0 +1,49 @@
+{
+  "name": "@hexlet/typescript-package",
+  "version": "1.1.0",
+  "description": "Typescript boilerplate package",
+  "author": "Hexlet",
+  "license": "ISC",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hexlet-boilerplates/typescript-package.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hexlet-boilerplates/typescript-package/issues"
+  },
+  "homepage": "https://github.com/hexlet-boilerplates/typescript-package#readme",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=21"
+  },
+  "scripts": {
+    "build": "rm -rf ./dist && tsc",
+    "exec": "npx tsx ./src/index.ts",
+    "lint": "npx eslint .",
+    "test": "vitest"
+  },
+  "simple-git-hooks": {
+    "pre-push": "make lint"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.21.0",
+    "@stylistic/eslint-plugin": "^4.2.0",
+    "@types/eslint": "^9.6.1",
+    "@types/node": "^22.13.9",
+    "@typescript-eslint/eslint-plugin": "^8.26.0",
+    "@typescript-eslint/parser": "^8.26.0",
+    "eslint": "^9.21.0",
+    "jiti": "^2.4.2",
+    "npm-check-updates": "^17.1.15",
+    "simple-git-hooks": "^2.11.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.26.0",
+    "vitest": "^3.0.7"
+  },
+  "dependencies": {
+    "es-toolkit": "^1.32.0",
+    "openai": "^4.87.3"
+  }
+}
