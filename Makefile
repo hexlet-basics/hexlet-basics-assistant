@@ -15,3 +15,6 @@ test:
 
 lint:
 	npm run lint
+
+assistant-load:
+	bin/dev.js load javascript

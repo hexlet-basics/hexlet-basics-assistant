@@ -17,10 +17,16 @@
   "engines": {
     "node": ">=21"
   },
+  "files": [
+    "./dist",
+    "./oclif.manifest.json"
+  ],
   "scripts": {
     "build": "rm -rf ./dist && tsc",
     "exec": "npx tsx ./src/index.ts",
     "lint": "npx eslint .",
+    "postpack": "rm -f oclif.manifest.json",
+    "prepack": "npx oclif manifest && npx oclif readme",
     "test": "vitest"
   },
   "simple-git-hooks": {
@@ -30,6 +36,7 @@
     "@eslint/js": "^9.22.0",
     "@stylistic/eslint-plugin": "^4.2.0",
     "@types/eslint": "^9.6.1",
+    "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.13.10",
     "@typescript-eslint/eslint-plugin": "^8.26.1",
     "@typescript-eslint/parser": "^8.26.1",
@@ -37,13 +44,32 @@
     "jiti": "^2.4.2",
     "npm-check-updates": "^17.1.15",
     "simple-git-hooks": "^2.11.1",
+    "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.26.1",
     "vitest": "^3.0.8"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^1.2.5",
+    "@oclif/core": "^4.2.10",
+    "@sindresorhus/merge-streams": "^4.0.0",
     "ai": "^4.1.61",
-    "es-toolkit": "^1.33.0"
+    "es-toolkit": "^1.33.0",
+    "fs-extra": "^11.3.0",
+    "isomorphic-git": "^1.29.0",
+    "oclif": "^4.17.37",
+    "openai": "^4.87.3",
+    "p-queue": "^8.1.0",
+    "yaml": "^2.7.0"
+  },
+  "bin": {
+    "hexlet-basics-assistant": "./dist/run.js"
+  },
+  "oclif": {
+    "bin": "hexlet-basics-assistant",
+    "commands": "./src/commands",
+    "dirname": "hexlet-basics-assistant",
+    "topicSeparator": " "
   }
 }
