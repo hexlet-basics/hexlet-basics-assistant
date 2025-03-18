@@ -142,6 +142,8 @@ export async function load(courseSlug: string) {
 
   const client = new OpenAI()
 
+  // TODO: retrieve list of stores, find one by name and use it
+  // the stores's names should be standartize (ex. exercises-javascript)
   const storeId = 'vs_67d63d7f17b08191b48891045f2f2cb1'
   // const store = await client.vectorStores.retrieve(storeId)
   const storeFiles = await client.vectorStores.files.list(storeId)
