@@ -11,6 +11,7 @@ import { readYamlFile } from './utils'
 import OpenAI from 'openai'
 import mergeStreams from '@sindresorhus/merge-streams'
 import PQueue from 'p-queue'
+import { CourseSlug, storeIds } from './config'
 
 async function cloneOrPull(lang: string): Promise<string> {
   const repositoryName = `/hexlet-basics/exercises-${lang}` // Change to your repository
@@ -50,10 +51,20 @@ async function cloneOrPull(lang: string): Promise<string> {
   return dest
 }
 
-async function readCourse(courseSlug: string, courseDir: string): Promise<Course> {
+async function readCourse(courseSlug: CourseSlug, courseDir: string): Promise<Course> {
   const courseDescriptionPath = path.join(courseDir, 'description.ru.yml')
   const courseMetadata = await readYamlFile<{ header: string, description: string }>(
     courseDescriptionPath,
+  )
+
+  const courseSpecPath = path.join(courseDir, 'spec.yml')
+  const courseSpec = await readYamlFile<{
+    language: {
+      exercise_filename: string
+      exercise_test_filename: string
+    }
+  }>(
+    courseSpecPath,
   )
 
   const modulesPath = path.join(courseDir, 'modules')
@@ -86,8 +97,8 @@ async function readCourse(courseSlug: string, courseDir: string): Promise<Course
 
       const readmePath = path.join(lessonRuPath, 'README.md')
       const exercisePath = path.join(lessonRuPath, 'EXERCISE.md')
-      const codePath = path.join(lessonPath, 'index.js')
-      const testPath = path.join(lessonPath, 'test.js')
+      const codePath = path.join(lessonPath, courseSpec.language.exercise_filename)
+      const testPath = path.join(lessonPath, courseSpec.language.exercise_test_filename)
 
       return {
         slug: lessonSlug,
@@ -136,15 +147,16 @@ async function readCourse(courseSlug: string, courseDir: string): Promise<Course
   }
 }
 
-export async function load(courseSlug: string) {
+export async function load(courseSlug: CourseSlug) {
   const courseDir = await cloneOrPull(courseSlug)
   const course = await readCourse(courseSlug, courseDir)
 
+  // OPENAI_API_KEY
   const client = new OpenAI()
 
   // TODO: retrieve list of stores, find one by name and use it
   // the stores's names should be standartize (ex. exercises-javascript)
-  const storeId = 'vs_67d63d7f17b08191b48891045f2f2cb1'
+  const storeId = storeIds[courseSlug]
   // const store = await client.vectorStores.retrieve(storeId)
   const storeFiles = await client.vectorStores.files.list(storeId)
   // console.log(storeFiles.data)

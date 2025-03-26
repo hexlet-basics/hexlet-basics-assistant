@@ -1,5 +1,6 @@
 import { Args, Command } from '@oclif/core'
 import { load } from '../loading'
+import { isCourseSlug } from '../utils'
 
 export default class Load extends Command {
   static override args = {
@@ -20,8 +21,11 @@ export default class Load extends Command {
 
   public async run(): Promise<void> {
     const { args } = await this.parse(Load)
-    if (args.lang) {
+    if (args.lang && isCourseSlug(args.lang)) {
       await load(args.lang)
+    }
+    else {
+      this.error(`Unsupported language: ${args.lang}`)
     }
     // const name = flags.name ?? 'world'
     // this.log(`hello ${name} from /Users/mokevnin/projects/hexlet-basics-assistant/src/commands/load.ts`)

@@ -17,4 +17,4 @@ lint:
 	npm run lint
 
 assistant-load:
-	bin/dev.js load javascript
+	bin/dev.js load ${L}
