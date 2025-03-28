@@ -12,6 +12,7 @@ import OpenAI from 'openai'
 import mergeStreams from '@sindresorhus/merge-streams'
 import PQueue from 'p-queue'
 import { CourseSlug, storeIds } from './config'
+import { Readable } from 'node:stream'
 
 async function cloneOrPull(lang: string): Promise<string> {
   const repositoryName = `/hexlet-basics/exercises-${lang}` // Change to your repository
@@ -19,7 +20,7 @@ async function cloneOrPull(lang: string): Promise<string> {
   const dest = path.join(os.tmpdir(), repositoryName)
 
   console.log(`Repository: ${repositoryUrl}`)
-  console.log(`Destination: ${dest}`)
+  console.log(`Clone to: ${dest}`)
 
   if (!(await fse.pathExists(dest))) {
     console.log('Cloning repository...')
@@ -168,14 +169,21 @@ export async function load(courseSlug: CourseSlug) {
     const queue = new PQueue({ concurrency: 5 })
     const promises = module.lessons.map(lesson => async () => {
       const mergedStream = mergeStreams([
+        Readable.from(['\n\n## Теория урока\n\n']),
         fs.createReadStream(lesson.readmePath),
+        Readable.from(['\n\n## Задание (Практика) урока\n\n']),
         fs.createReadStream(lesson.exercisePath),
+        Readable.from(['\n\n## Реализация задания (то что должен написать студент)\n\n']),
         fs.createReadStream(lesson.codePath),
+        Readable.from(['\n\n## Тесты задания (по которым проверяется код студента и реализация\n\n']),
         fs.createReadStream(lesson.testPath),
       ])
 
+      const tmpDir = os.tmpdir()
+      console.log(`Directory for prepared files: ${tmpDir}`)
+
       const filename = `${course.slug}-${module.slug}-${lesson.slug}.txt`
-      const tempFilePath = path.join(os.tmpdir(), filename)
+      const tempFilePath = path.join(tmpDir, filename)
       const writeStream = fs.createWriteStream(tempFilePath)
       await pipeline(mergedStream, writeStream)
 
