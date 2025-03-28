@@ -9,10 +9,9 @@ import http from 'isomorphic-git/http/node/index.js'
 import { Course } from '../types'
 import { readYamlFile } from './utils'
 import OpenAI from 'openai'
-import mergeStreams from '@sindresorhus/merge-streams'
 import PQueue from 'p-queue'
 import { CourseSlug, storeIds } from './config'
-import { Readable } from 'node:stream'
+import { PassThrough, Readable } from 'node:stream'
 
 async function cloneOrPull(lang: string): Promise<string> {
   const repositoryName = `/hexlet-basics/exercises-${lang}` // Change to your repository
@@ -92,7 +91,7 @@ async function readCourse(courseSlug: CourseSlug, courseDir: string): Promise<Co
     )
     // console.log(sortedLessonDirs)
 
-    const lessonPromises = sortedLessonDirs.map((lessonSlug) => {
+    const lessonPromises = sortedLessonDirs.map(async (lessonSlug) => {
       const lessonPath = path.join(modulePath, lessonSlug)
       const lessonRuPath = path.join(lessonPath, 'ru')
 
@@ -100,9 +99,15 @@ async function readCourse(courseSlug: CourseSlug, courseDir: string): Promise<Co
       const exercisePath = path.join(lessonRuPath, 'EXERCISE.md')
       const codePath = path.join(lessonPath, courseSpec.language.exercise_filename)
       const testPath = path.join(lessonPath, courseSpec.language.exercise_test_filename)
+      const lessonMetaDataPath = path.join(lessonRuPath, 'data.yml')
+
+      const lessonMetaData = await readYamlFile<{ name: string }>(
+        lessonMetaDataPath,
+      )
 
       return {
         slug: lessonSlug,
+        name: lessonMetaData.name,
         readmePath,
         exercisePath,
         codePath,
@@ -165,33 +170,50 @@ export async function load(courseSlug: CourseSlug) {
     await client.vectorStores.files.del(storeId, storeFile.id)
   }
 
+  const tmpDir = os.tmpdir()
+  console.log(`Directory for prepared files: ${tmpDir}`)
+
   for (const module of course.modules) {
     const queue = new PQueue({ concurrency: 5 })
-    const promises = module.lessons.map(lesson => async () => {
-      const mergedStream = mergeStreams([
-        Readable.from(['\n\n## Теория урока\n\n']),
-        fs.createReadStream(lesson.readmePath),
-        Readable.from(['\n\n## Задание (Практика) урока\n\n']),
-        fs.createReadStream(lesson.exercisePath),
-        Readable.from(['\n\n## Реализация задания (то что должен написать студент)\n\n']),
-        fs.createReadStream(lesson.codePath),
-        Readable.from(['\n\n## Тесты задания (по которым проверяется код студента и реализация\n\n']),
-        fs.createReadStream(lesson.testPath),
-      ])
+    const promises = module.lessons.map((lesson) => {
+      return async () => {
+        const filename = `${course.slug}-${module.slug}-${lesson.slug}.txt`
+        const tempFilePath = path.join(tmpDir, filename)
+        const writeStream = fs.createWriteStream(tempFilePath)
+        const pass = new PassThrough()
 
-      const tmpDir = os.tmpdir()
-      console.log(`Directory for prepared files: ${tmpDir}`)
+        const inputChunks = [
+          Readable.from([`\n\n# ${lesson.name}\n\n`]),
+          Readable.from(['\n\n## Теория урока\n\n']),
+          fs.createReadStream(lesson.readmePath),
+          Readable.from(['\n\n## Задание (Практика) урока\n\n']),
+          fs.createReadStream(lesson.exercisePath),
+          Readable.from(['\n\n## Реализация задания (то что должен написать студент)\n\n']),
+          fs.createReadStream(lesson.codePath),
+          Readable.from(['\n\n## Тесты задания (по которым проверяется код студента и реализация\n\n']),
+          fs.createReadStream(lesson.testPath),
+        ]
 
-      const filename = `${course.slug}-${module.slug}-${lesson.slug}.txt`
-      const tempFilePath = path.join(tmpDir, filename)
-      const writeStream = fs.createWriteStream(tempFilePath)
-      await pipeline(mergedStream, writeStream)
+        const pushStreams = async () => {
+          for (const stream of inputChunks) {
+            for await (const chunk of stream) {
+              pass.write(chunk)
+            }
+          }
+          pass.end()
+        }
 
-      await client.vectorStores.files.uploadAndPoll(
-        storeId,
-        fs.createReadStream(tempFilePath),
-      )
-      console.log(filename)
+        await Promise.all([
+          pushStreams(),
+          pipeline(pass, writeStream),
+        ])
+
+        await client.vectorStores.files.uploadAndPoll(
+          storeId,
+          fs.createReadStream(tempFilePath),
+        )
+        console.log(filename)
+      }
     })
     await queue.addAll(promises)
   }

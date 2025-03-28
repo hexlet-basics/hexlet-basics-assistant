@@ -1,6 +1,7 @@
 // Types go here
 
 export interface Lesson {
+  name: string
   slug: string
   readmePath: string
   exercisePath: string
